@@ -12,7 +12,7 @@ torchaudio>=0.9.0
 requests>=2.25.1
 
 # 临时文件处理
-tempfile (Python内置)
+# tempfile (Python内置模块，无需安装)
 
 # 基础数据处理
 numpy>=1.21.0
@@ -36,3 +36,10 @@ pyyaml>=6.0  # 支持YAML格式的冲突规则配置
 # 可选：如果需要更高级的音频处理
 # ffmpeg-python>=0.2.0  # FFmpeg集成，用于精确音频时长测量
 # soundfile>=0.10.0  # 音频文件读写支持
+
+# Web服务依赖 - Frame Extraction Service
+Flask==2.3.3
+Werkzeug==2.3.7
+gunicorn==21.2.0
+# 系统监控
+psutil==5.9.5
