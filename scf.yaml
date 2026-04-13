@@ -1,0 +1,35 @@
+# 腾讯云SCF部署配置
+Globals:
+  Function:
+    Timeout: 60
+    MemorySize: 512
+    Runtime: Python3.6
+    Environment:
+      Variables:
+        FFMPEG_BIN: ffmpeg
+        FFPROBE_BIN: ffprobe
+
+Resources:
+  FrameExtractionFunction:
+    Type: TencentCloud::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: scf_handler.main_handler
+      Description: "视频帧提取服务 - 支持Dify工作流集成"
+      Events:
+        ApiEvent:
+          Type: APIGW
+          Properties:
+            StageName: release
+            ServiceName: frame-extraction-service
+            HttpMethod: ANY
+            IntegratedResponse: true
+
+  # API网关配置
+  FrameExtractionApi:
+    Type: TencentCloud::Serverless::Api
+    Properties:
+      StageName: release
+      ServiceName: frame-extraction-service
+      HttpMethod: ANY
+      IntegratedResponse: true

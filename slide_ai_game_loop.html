@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI驱动的游戏体验闭环</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+      background: #0d1b5e;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .slide {
+      width: 960px;
+      height: 540px;
+      background: linear-gradient(160deg, #0d1b5e 60%, #0a1550 100%);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    /* 左下角装饰圆弧 */
+    .slide::before {
+      content: "";
+      position: absolute;
+      bottom: -60px;
+      left: -60px;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      border: 3px solid rgba(100, 160, 255, 0.25);
+      pointer-events: none;
+    }
+
+    /* 主体内容区 */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 80px 20px;
+      text-align: center;
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: 2px;
+      margin-bottom: 32px;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: rgba(255, 255, 255, 0.85);
+      line-height: 2;
+      letter-spacing: 1px;
+    }
+
+    .subtitle p {
+      margin: 0;
+    }
+
+    /* 底部三列 */
+    .bottom-bar {
+      background: rgba(255, 200, 0, 0.0);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 18px 60px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .bottom-item {
+      font-size: 14px;
+      font-weight: 600;
+      color: #f5c518;
+      letter-spacing: 1.5px;
+      flex: 1;
+      text-align: center;
+    }
+
+    .bottom-item:first-child {
+      text-align: left;
+    }
+
+    .bottom-item:last-child {
+      text-align: right;
+    }
+
+    /* 分隔线 */
+    .bottom-divider {
+      width: 1px;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <div class="slide">
+    <!-- 主体内容 -->
+    <div class="main-content">
+      <h1 class="title">AI驱动的游戏体验闭环</h1>
+      <div class="subtitle">
+        <p>从底层AI赋能游戏体验链路</p>
+        <p>通过AI能力生成体验积累，持续优化续课条件</p>
+      </div>
+    </div>
+
+    <!-- 底部三列 -->
+    <div class="bottom-bar">
+      <div class="bottom-item">AI不是功能，而是系统工程</div>
+      <div class="bottom-divider"></div>
+      <div class="bottom-item">高ROI优先级 备受管理中</div>
+      <div class="bottom-divider"></div>
+      <div class="bottom-item">AI能力需要产品化</div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,17 @@
+# 测试依赖
+pytest==7.4.0
+pytest-cov==4.1.0
+pytest-mock==3.11.1
+coverage==7.2.7
+responses==0.23.3
+httmock==1.4.0
+
+# 开发工具
+black==23.9.1
+flake8==6.0.0
+mypy==1.5.1
+isort==5.12.0
+
+# 测试数据生成
+faker==19.6.1
+factory-boy==3.3.0
