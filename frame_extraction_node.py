@@ -1,6 +1,9 @@
 import json
 import urllib.request
 import urllib.error
+import base64
+import os
+import io
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Constants
@@ -22,7 +25,7 @@ def main(
     """
     Dify Code Node: Video Frame Extraction (sandbox-safe, HTTP-based)
 
-    Sends the video URL to an external frame-extraction HTTP service that runs
+    Sends the video file to an external frame-extraction HTTP service that runs
     ffmpeg server-side. Returns up to max_frames uniformly sampled frames as
     base64-encoded JPEGs with timestamps.
 
@@ -61,22 +64,7 @@ def main(
                       "No supported video file found in input array. "
                       f"Supported formats: {sorted(SUPPORTED_EXTENSIONS)}")
 
-    video_url = _get_url(video_obj)
-    if not video_url:
-        return _error("input_validation", "NO_URL",
-                      "Video file object has no accessible URL.")
-
-    filename  = _get_field(video_obj, "filename", "video.mp4")
-    mime_type = _get_field(video_obj, "mime_type", "video/mp4")
-
     # ── 2. Call external frame-extraction service ─────────────────────────────
-    request_payload = {
-        "video_url":  video_url,
-        "max_frames": max_frames,
-        "filename":   filename,
-        "mime_type":  mime_type,
-    }
-
     try:
         # 尝试多个端点路径
         endpoints = ["/extract", "/extract_frames", "/api/extract"]
@@ -84,7 +72,8 @@ def main(
         
         for endpoint in endpoints:
             try:
-                response = _http_post(service_url + endpoint, request_payload)
+                # 使用文件上传方式
+                response = _http_post_file(service_url + endpoint, video_obj, max_frames)
                 break  # 成功则退出循环
             except urllib.error.HTTPError as exc:
                 if exc.code == 404:
@@ -191,21 +180,59 @@ def _splitext(filename: str) -> str:
     return "." + filename.rsplit(".", 1)[-1].lower()
 
 
-def _http_post(url: str, payload: dict, timeout: int = 60) -> dict:
+def _http_post_file(url: str, video_obj, max_frames: int, timeout: int = 120) -> dict:
     """
-    POST a JSON payload to url and return the parsed JSON response.
+    POST a video file using multipart/form-data to url and return the parsed JSON response.
     Raises urllib.error.HTTPError on non-2xx status.
     """
-    data = json.dumps(payload).encode("utf-8")
-    req  = urllib.request.Request(
+    # 获取文件URL和下载文件内容
+    video_url = _get_url(video_obj)
+    if not video_url:
+        raise ValueError("Video file has no accessible URL")
+    
+    # 下载文件内容
+    req = urllib.request.Request(video_url)
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        file_content = resp.read()
+    
+    # 准备multipart/form-data
+    boundary = "----WebKitFormBoundary" + base64.b64encode(os.urandom(16)).decode('ascii')
+    
+    filename = _get_field(video_obj, "filename", "video.mp4")
+    mime_type = _get_field(video_obj, "mime_type", "video/mp4")
+    
+    # 构建multipart数据
+    data_parts = []
+    
+    # 文件部分
+    data_parts.append(f"--{boundary}")
+    data_parts.append(f'Content-Disposition: form-data; name="file"; filename="{filename}"')
+    data_parts.append(f"Content-Type: {mime_type}")
+    data_parts.append("")
+    data_parts.append(file_content.decode('latin-1'))
+    
+    # 参数部分
+    data_parts.append(f"--{boundary}")
+    data_parts.append('Content-Disposition: form-data; name="max_frames"')
+    data_parts.append("")
+    data_parts.append(str(max_frames))
+    
+    data_parts.append(f"--{boundary}--")
+    data_parts.append("")
+    
+    # 合并数据
+    data = "\r\n".join(data_parts).encode('latin-1')
+    
+    req = urllib.request.Request(
         url,
         data=data,
         method="POST",
         headers={
-            "Content-Type": "application/json",
-            "Accept":       "application/json",
+            "Content-Type": f"multipart/form-data; boundary={boundary}",
+            "Accept": "application/json",
         },
     )
+    
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         body = resp.read().decode("utf-8")
     return json.loads(body)
