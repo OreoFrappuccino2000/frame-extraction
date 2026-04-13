@@ -458,6 +458,23 @@ def _process_video_file(video_path: str, max_frames: int, filename: str, mime_ty
 # Routes
 # ─────────────────────────────────────────────────────────────────────────────
 
+@app.route("/", methods=["GET"])
+def index():
+    """根路径，提供友好的欢迎页面"""
+    return jsonify({
+        "service": "Frame Extraction Service",
+        "version": "1.0.0",
+        "status": "running",
+        "endpoints": {
+            "health": "/health",
+            "extract_frames": "/extract",
+            "metrics": "/metrics",
+            "stats": "/stats"
+        },
+        "documentation": "Use POST /extract with video_url or file upload to extract frames",
+        "timestamp": _get_current_timestamp()
+    })
+
 @app.route("/health", methods=["GET"])
 def health():
     """增强的健康检查端点"""
