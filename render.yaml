@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: frame-extraction-service
+    env: python
+    region: singapore   # 亚洲节点，离中国最近
+    plan: free
+    buildCommand: "apt-get install -y ffmpeg && pip install -r requirements-service.txt"
+    startCommand: "python frame_extraction_service.py"
+    envVars:
+      - key: HOST
+        value: "0.0.0.0"
+      - key: PORT
+        value: "10000"   # Render 默认使用 10000 端口
+      - key: FFMPEG_BIN
+        value: "ffmpeg"
+      - key: FFPROBE_BIN
+        value: "ffprobe"
+    healthCheckPath: /health
