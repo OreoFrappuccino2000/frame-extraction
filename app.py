@@ -15,6 +15,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+app.url_map.strict_slashes = False
 
 # ---------------------------------------------------------------------------
 # Config
@@ -275,11 +276,21 @@ def extract_frames():
 def serve_frame(job_id, filename):
     """Serve an extracted frame as a JPEG image."""
     # Sanitize inputs to prevent path traversal
-    if "/" in job_id or ".." in job_id or "/" in filename or ".." in filename:
+    if ".." in job_id or ".." in filename:
         abort(400)
 
     frame_path = os.path.join(FRAMES_STORE, job_id, filename)
+    logger.info(f"Serving frame: {frame_path}, exists={os.path.isfile(frame_path)}")
     if not os.path.isfile(frame_path):
+        # List what's actually in the store for debugging
+        try:
+            jobs = os.listdir(FRAMES_STORE)
+            logger.info(f"Available jobs in store: {jobs}")
+            if job_id in jobs:
+                files = os.listdir(os.path.join(FRAMES_STORE, job_id))
+                logger.info(f"Files in job {job_id}: {files}")
+        except Exception:
+            pass
         abort(404)
 
     return send_file(frame_path, mimetype="image/jpeg")
