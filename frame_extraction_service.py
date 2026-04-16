@@ -909,13 +909,24 @@ def _probe_duration(video_path: str) -> float:
     return float(info.get("format", {}).get("duration", 0))
 
 
+# Frame output config – keep total response under Dify's 1 MB text limit.
+# With max_width=512 and q:v=8, each JPEG frame is roughly 20-40 KB.
+# 10 frames × ~40 KB × 1.37 (base64 overhead) ≈ 550 KB – well within 1 MB.
+FRAME_MAX_WIDTH = int(os.environ.get("FRAME_MAX_WIDTH", "512"))
+FRAME_JPEG_QUALITY = int(os.environ.get("FRAME_JPEG_QUALITY", "8"))  # ffmpeg -q:v scale 2(best)–31(worst)
+
+
 def _extract_frame(video_path: str, timestamp: float, output_path: str):
+    # Scale down: keep aspect ratio, limit width to FRAME_MAX_WIDTH pixels.
+    # -2 ensures height is divisible by 2 (required by many codecs).
+    scale_filter = f"scale='min({FRAME_MAX_WIDTH},iw)':-2"
     cmd = [
         FFMPEG_BIN,
         "-ss", str(timestamp),
         "-i", video_path,
         "-frames:v", "1",
-        "-q:v", "2",
+        "-vf", scale_filter,
+        "-q:v", str(FRAME_JPEG_QUALITY),
         "-y",
         output_path,
     ]
