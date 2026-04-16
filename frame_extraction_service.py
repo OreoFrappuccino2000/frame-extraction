@@ -46,12 +46,11 @@ import time
 import psutil
 import logging
 import threading
-import signal
 import uuid
 from datetime import datetime
 from flask import Flask, request, jsonify
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
-from signal import SIGALRM
+
 
 # 配置日志
 logging.basicConfig(
@@ -572,34 +571,23 @@ def _check_memory_usage():
         return True
 
 
-def _timeout_handler(signum, frame):
-    """超时处理函数"""
-    raise TimeoutError("Processing timeout")
-
-
 def _extract_frames_with_timeout(video_path: str, max_frames: int, timeout: int = MAX_PROCESSING_TIME):
-    """带超时控制的帧提取函数"""
-    # 设置超时信号（仅限Unix系统）
-    if hasattr(signal, 'SIGALRM'):
-        signal.signal(signal.SIGALRM, _timeout_handler)
-        signal.alarm(timeout)
-    
+    """带超时控制的帧提取函数（线程安全版本）"""
+    # 检查内存使用
+    if not _check_memory_usage():
+        raise FrameExtractionError("performance", "MEMORY_LIMIT_EXCEEDED",
+                                  f"Memory usage exceeds threshold ({MEMORY_THRESHOLD_MB}MB)", 503)
+
+    # Use ThreadPoolExecutor for thread-safe timeout (signal.alarm only works in main thread)
+    executor = ThreadPoolExecutor(max_workers=1)
     try:
-        # 检查内存使用
-        if not _check_memory_usage():
-            raise FrameExtractionError("performance", "MEMORY_LIMIT_EXCEEDED",
-                                      f"Memory usage exceeds threshold ({MEMORY_THRESHOLD_MB}MB)", 503)
-        
-        # 执行帧提取
-        return _extract_frames(video_path, max_frames)
-    
+        future = executor.submit(_extract_frames, video_path, max_frames)
+        return future.result(timeout=timeout)
     except TimeoutError:
         raise FrameExtractionError("performance", "PROCESSING_TIMEOUT",
                                   f"Frame extraction timed out after {timeout} seconds", 504)
     finally:
-        # 取消超时信号
-        if hasattr(signal, 'SIGALRM'):
-            signal.alarm(0)
+        executor.shutdown(wait=False)
 
 
 def _process_request_with_concurrency_control(request_id: str, func, *args, **kwargs):
