@@ -571,6 +571,63 @@ def _check_memory_usage():
         return True
 
 
+def _extract_frames(video_path: str, max_frames: int) -> dict:
+    """Core frame extraction logic.
+
+    Returns dict with keys: frames (list of dicts), duration (float).
+    """
+    # Probe duration
+    try:
+        duration = _probe_duration(video_path)
+    except Exception as exc:
+        raise FrameExtractionError("ffprobe", "PROBE_FAILED", str(exc), 500)
+
+    if duration <= 0:
+        raise FrameExtractionError("ffprobe", "INVALID_DURATION",
+                                  "Video duration is 0 or could not be determined.", 422)
+
+    # Calculate uniform timestamps
+    n_frames = max(1, min(max_frames, int(duration)))
+    interval = duration / n_frames
+    timestamps = [round(interval * (i + 0.5), 3) for i in range(n_frames)]
+
+    # Extract frames to temp directory
+    frames_dir = tempfile.mkdtemp(prefix="frames_")
+    extracted_frames = []
+
+    try:
+        for idx, ts in enumerate(timestamps):
+            frame_path = os.path.join(frames_dir, f"frame_{idx+1:03d}.jpg")
+            try:
+                _extract_frame(video_path, ts, frame_path)
+            except Exception:
+                continue  # skip unextractable frames
+
+            if not os.path.exists(frame_path):
+                continue
+
+            with open(frame_path, "rb") as f:
+                b64 = base64.b64encode(f.read()).decode("utf-8")
+
+            extracted_frames.append({
+                "frame_index":         idx + 1,
+                "timestamp_seconds":   ts,
+                "timestamp_formatted": _fmt_ts(ts),
+                "image_base64":        b64,
+                "image_mime":          "image/jpeg",
+            })
+    finally:
+        # Cleanup temp frames directory
+        import shutil
+        shutil.rmtree(frames_dir, ignore_errors=True)
+
+    if not extracted_frames:
+        raise FrameExtractionError("ffmpeg", "NO_FRAMES_EXTRACTED",
+                                  "ffmpeg ran but produced no output frames.", 500)
+
+    return {"frames": extracted_frames, "duration": duration}
+
+
 def _extract_frames_with_timeout(video_path: str, max_frames: int, timeout: int = MAX_PROCESSING_TIME):
     """带超时控制的帧提取函数（线程安全版本）"""
     # 检查内存使用
