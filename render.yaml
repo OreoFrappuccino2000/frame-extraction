@@ -4,7 +4,7 @@ services:
     env: python
     region: singapore
     plan: free
-    buildCommand: "apt-get install -y ffmpeg && pip install -r requirements.txt"
+    buildCommand: "pip install -r requirements.txt"
     startCommand: "python app.py"
     envVars:
       - key: HOST
@@ -15,4 +15,6 @@ services:
         value: "ffmpeg"
       - key: FFPROBE_BIN
         value: "ffprobe"
+      - key: NIXPACKS_APT_PKGS
+        value: "ffmpeg"
     healthCheckPath: /health

@@ -24,16 +24,52 @@ FRAME_JPEG_QUALITY = int(os.environ.get("FRAME_JPEG_QUALITY", "8"))  # ffmpeg q:
 MAX_FRAMES_DEFAULT = int(os.environ.get("MAX_FRAMES", "10"))
 FRAMES_STORE = os.path.join(tempfile.gettempdir(), "frame_store")
 FRAME_TTL_SECONDS = 600  # auto-delete frames after 10 minutes
-FFMPEG_BIN = os.environ.get("FFMPEG_BIN", "ffmpeg")
-FFPROBE_BIN = os.environ.get("FFPROBE_BIN", "ffprobe")
-
 os.makedirs(FRAMES_STORE, exist_ok=True)
 
-# Make bundled ffmpeg executable if present
-_bundled = os.path.join(os.path.dirname(__file__), "bin", "ffmpeg")
-if os.path.exists(_bundled):
-    os.chmod(_bundled, 0o755)
-    os.environ["PATH"] = os.path.dirname(_bundled) + ":" + os.environ.get("PATH", "")
+# ---------------------------------------------------------------------------
+# Resolve ffmpeg / ffprobe binary paths
+# Priority: env var > bundled bin/ > imageio-ffmpeg > system PATH
+# ---------------------------------------------------------------------------
+def _resolve_ffmpeg():
+    """Find a working ffmpeg binary."""
+    # 1. Env var
+    env_ff = os.environ.get("FFMPEG_BIN", "")
+    if env_ff and shutil.which(env_ff):
+        return env_ff
+    # 2. Bundled
+    bundled = os.path.join(os.path.dirname(__file__), "bin", "ffmpeg")
+    if os.path.exists(bundled):
+        os.chmod(bundled, 0o755)
+        return bundled
+    # 3. imageio-ffmpeg (pip-installed, ships its own static binary)
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        pass
+    # 4. System PATH fallback
+    return "ffmpeg"
+
+def _resolve_ffprobe():
+    """Find a working ffprobe binary."""
+    env_fp = os.environ.get("FFPROBE_BIN", "")
+    if env_fp and shutil.which(env_fp):
+        return env_fp
+    # ffprobe usually lives next to ffmpeg
+    ffmpeg_dir = os.path.dirname(FFMPEG_BIN)
+    candidate = os.path.join(ffmpeg_dir, "ffprobe")
+    if os.path.isfile(candidate):
+        os.chmod(candidate, 0o755)
+        return candidate
+    if shutil.which("ffprobe"):
+        return "ffprobe"
+    # No ffprobe available — we'll fall back to ffmpeg-based duration detection
+    return None
+
+FFMPEG_BIN = _resolve_ffmpeg()
+FFPROBE_BIN = _resolve_ffprobe()
+logger.info(f"Using ffmpeg: {FFMPEG_BIN}")
+logger.info(f"Using ffprobe: {FFPROBE_BIN}")
 
 
 # ---------------------------------------------------------------------------
@@ -55,16 +91,29 @@ def _cleanup_old_jobs():
 
 
 def _probe_duration(video_path: str) -> float:
-    """Get video duration in seconds via ffprobe."""
-    cmd = [
-        FFPROBE_BIN,
-        "-v", "error",
-        "-show_entries", "format=duration",
-        "-of", "default=noprint_wrappers=1:nokey=1",
-        video_path,
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-    return float(result.stdout.strip())
+    """Get video duration in seconds via ffprobe, with ffmpeg fallback."""
+    if FFPROBE_BIN:
+        cmd = [
+            FFPROBE_BIN,
+            "-v", "error",
+            "-show_entries", "format=duration",
+            "-of", "default=noprint_wrappers=1:nokey=1",
+            video_path,
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        if result.returncode == 0 and result.stdout.strip():
+            return float(result.stdout.strip())
+
+    # Fallback: use ffmpeg to get duration from stderr
+    cmd = [FFMPEG_BIN, "-i", video_path, "-f", "null", "-"]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    # Parse "Duration: HH:MM:SS.xx" from stderr
+    import re
+    match = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", result.stderr)
+    if match:
+        h, m, s = float(match.group(1)), float(match.group(2)), float(match.group(3))
+        return h * 3600 + m * 60 + s
+    raise RuntimeError("Could not determine video duration")
 
 
 def _extract_single_frame(video_path: str, timestamp: float, output_path: str):
