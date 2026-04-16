@@ -73,7 +73,7 @@ _performance_stats = {
 }
 
 # 性能优化配置
-MAX_PROCESSING_TIME = 60  # 最大处理时间60秒
+MAX_PROCESSING_TIME = 180  # 最大处理时间180秒（Render免费版CPU较慢，需要更多时间）
 MAX_CONCURRENT_REQUESTS = 5  # 最大并发请求数
 MEMORY_THRESHOLD_MB = 500  # 内存使用阈值500MB
 
@@ -831,7 +831,7 @@ def stats():
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _download(url: str, dest_path: str, max_retries: int = 3, timeout: int = 60):
+def _download(url: str, dest_path: str, max_retries: int = 3, timeout: int = 120):
     """下载视频文件，支持重试和超时控制"""
     import time
     
