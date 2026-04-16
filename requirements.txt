@@ -1,45 +1,4 @@
-# TTS质量检查节点依赖
-# 在Dify代码节点中运行前，请确保安装这些依赖
-
-# WhisperX - 免费开源的语音识别库
-# whisperx>=3.1.1  # 暂不支持Python 3.14，先注释掉
-
-# 音频处理相关库
-# torch>=1.9.0  # 暂不支持Python 3.14，先注释掉
-# torchaudio>=0.9.0  # 暂不支持Python 3.14，先注释掉
-
-# HTTP请求库（已包含在Dify中，但明确指定版本）
-requests>=2.25.1
-
-# 临时文件处理
-# tempfile (Python内置模块，无需安装)
-
-# 基础数据处理
-numpy>=1.21.0
-
-# 音频视频对齐功能依赖
-# 时间轴处理和冲突解决
-# scipy>=1.7.0  # 用于时间序列分析和冲突检测，暂不支持Python 3.14
-
-# 音频时长精确测量
-# pydub>=0.25.1  # 音频文件处理，精确测量时长，暂不支持Python 3.14
-
-# 音频格式支持
-# librosa>=0.9.0  # 高级音频分析和处理，暂不支持Python 3.14
-
-# 性能优化
-cachetools>=5.0.0  # 缓存管理，提高对齐计算性能
-
-# 配置管理
-pyyaml>=6.0  # 支持YAML格式的冲突规则配置
-
-# 可选：如果需要更高级的音频处理
-# ffmpeg-python>=0.2.0  # FFmpeg集成，用于精确音频时长测量
-# soundfile>=0.10.0  # 音频文件读写支持
-
-# Web服务依赖 - Frame Extraction Service
 Flask==2.3.3
 Werkzeug==2.3.7
+requests==2.31.0
 gunicorn==21.2.0
-# 系统监控
-psutil==5.9.5
