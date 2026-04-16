@@ -336,7 +336,7 @@ def _handle_file_upload():
         max_frames = int(request.form.get('max_frames', MAX_FRAMES))
         
         # 验证输入
-        _validate_input(uploaded_file=uploaded_file, max_frames=max_frames)
+        _validate_input_parameters(video_input="file_upload", max_frames=max_frames, filename=uploaded_file.filename or "upload", mime_type=uploaded_file.content_type or "video/mp4")
         
         # 保存上传的文件
         with tempfile.NamedTemporaryFile(delete=False, suffix='.tmp') as tmp_file:
@@ -376,7 +376,7 @@ def _handle_json_request():
         mime_type = data.get('mime_type', 'video/mp4')
         
         # 验证输入
-        _validate_input(video_url=video_url, max_frames=max_frames)
+        _validate_input_parameters(video_input=video_url, max_frames=max_frames, filename=filename, mime_type=mime_type)
         
         # 下载视频文件
         with tempfile.NamedTemporaryFile(delete=False, suffix='.tmp') as tmp_file:
