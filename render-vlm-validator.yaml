@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: vlm-validator-service
+    env: python
+    plan: free
+    region: oregon
+    buildCommand: |
+      pip install -r requirements-service.txt
+    startCommand: python vlm_validator_service.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: PORT
+        value: 5000
+    healthCheckPath: /health
+    autoDeploy: true
