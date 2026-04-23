@@ -70,13 +70,51 @@ def validate_vlm():
         
         # Import and use the vlm_validator
         try:
-            from vlm_validator.tools.validate_vlm import validate_vlm_output
+            # Import the validate_vlm module directly
+            import sys
+            import os
             
-            result = validate_vlm_output(
-                vlm_output=vlm_output,
-                frame_timestamps=frame_timestamps,
-                skills_file=skills_file
-            )
+            # Add vlm_validator tools directory to path
+            tools_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vlm_validator", "tools")
+            if tools_dir not in sys.path:
+                sys.path.insert(0, tools_dir)
+            
+            # Import the validation functions
+            from validate_vlm import _l1_clean_events, _l2_esports_validate, _optimize_for_short_video, _analyze_intents
+            
+            # Build ground truth map from frame timestamps
+            def _build_gt_map(frames):
+                return {frame.get("frame_index", i): frame.get("video_time", 0.0) 
+                       for i, frame in enumerate(frames)}
+            
+            # Process the VLM output using the validation pipeline
+            gt_map = _build_gt_map(frame_timestamps)
+            
+            # L1: Basic cleaning
+            events = _l1_clean_events(vlm_output.get("events", []), gt_map)
+            
+            # L2: E-sports validation
+            events = _l2_esports_validate(events)
+            
+            # L3: Short video optimization
+            events = _optimize_for_short_video(events)
+            
+            # Intent analysis
+            intent_analysis = _analyze_intents(events)
+            
+            # Build result
+            result = {
+                "events": events,
+                "views": vlm_output.get("views", []),
+                "metrics": vlm_output.get("metrics", []),
+                "squads": vlm_output.get("squads", []),
+                "intent_analysis": intent_analysis,
+                "stats": {
+                    "input_events": len(vlm_output.get("events", [])),
+                    "output_events": len(events),
+                    "dropped_events": len(vlm_output.get("events", [])) - len(events)
+                }
+            }
             
             return jsonify({
                 "success": True,
