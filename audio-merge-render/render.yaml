@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: audio-merge-service
+    runtime: docker
+    plan: free
+    healthCheckPath: /
